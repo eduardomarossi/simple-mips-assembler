@@ -1,10 +1,13 @@
+#!/usr/bin/python3
+# author: Eduardo Marossi <eduardom44@gmail.com>
+
 import logging
 import argparse
 import sys
 
 class Line_Assemble:
     def __init__(self):
-        self.r_instructions = ['add', 'sub', 'and', 'or', 'slt', 'nop']
+        self.r_instructions = ['add', 'sub', 'and', 'or', 'slt']
         self.i_instructions = ['lw', 'sw', 'beq']
         self.j_instructions = ['j']
     
@@ -37,8 +40,10 @@ class Line_Assemble:
         output = ""
         if self.get_instruction_type() == 'r':
             output = "000000" + self.get_register(args[1]) + self.get_register(args[2]) + self.get_register(args[0]) + "00000" + self.get_r_funct(instruct)
-        elif self.get_instruction_type() == 'i':
+        elif self.get_instruction_type() == 'i' and len(args) == 2:
             output = self.get_i_instruction(instruct) + self.get_register(args[1]) + self.get_register(args[0]) + self.get_immediate(args[1])
+        elif self.get_instruction_type() == 'i' and len(args) == 3:
+            output = self.get_i_instruction(instruct) + self.get_register(args[1]) + self.get_register(args[0]) + self.get_immediate(args[2])
         elif self.get_instruction_type() == 'j':
             output = self.get_j_instruction(instruct) + self.get_j_immediate(args[0])
         logging.debug('instruction: {}'.format(output))
@@ -70,7 +75,12 @@ class Line_Assemble:
         if '$' in register:
             register = register[register.find('$')+1:]
 
-        r = "{0:b}".format(int(register)).zfill(5) 
+        table = {'zero': '0', 'at' : '1', 'v0' : '2', 'v1': '3', 'a0' : '4', 'a1': '5', 'a2': '6', 'a3': '7', 't0': '8',
+                 't1': '9', 't2': '10', 't3' : '11', 't4': '12', 't5': '13', 't6': '14', 't7': '15', 's0': '16', 
+                 's1': '17', 's2': '18', 's3': '19', 's4': '20', 's5': '21', 's6': '22', 's7': '23', 't8': '24',
+                 't9': '25', 'k0': '26', 'k1': '27', 'gp': '28', 'sp' : '29', 'fp': '30', 'ra': '31'}
+
+        r = "{0:b}".format(int(table[register])).zfill(5) 
         logging.debug('register: {}'.format(r))
         return r
         
@@ -118,7 +128,4 @@ if __name__ == '__main__':
     mips.set_load_file(open(args.in_file, 'r'))
     mips.set_save_file(sys.stdout)
     mips.assemble()
-
-    
-
     

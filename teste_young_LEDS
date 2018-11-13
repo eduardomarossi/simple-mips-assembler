@@ -1,0 +1,11 @@
+lw $at, 0($zero) # ram(0) = 1
+add $v0, $at, $at 
+add $v0, $v0, $v0 
+add $v0, $v0, $v0 
+add $v0, $v0, $v0
+lw $v1, 1($zero) #ram(1) = 0x10000
+beq $at, $v0, 4
+sw $at, 0($v1)
+add $at, $at, $at
+j 6
+j 0
