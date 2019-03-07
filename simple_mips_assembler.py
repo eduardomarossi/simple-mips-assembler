@@ -11,9 +11,9 @@ def bindigits(n, bits):
 
 class Line_Assemble:
     def __init__(self):
-        self.r_instructions = ['add', 'sub', 'and', 'or', 'slt']
-        self.i_instructions = ['lw', 'sw', 'beq']
-        self.j_instructions = ['j']
+        self.r_instructions = ['add', 'sub', 'and', 'or', 'slt', 'jr']
+        self.i_instructions = ['lw', 'sw', 'beq', 'bne', 'addi', 'slti', 'ori', 'andi']
+        self.j_instructions = ['j', 'jal']
         self.labels = {}
         self.address = 0
     
@@ -21,6 +21,9 @@ class Line_Assemble:
         self.line = line.strip().replace('  ', ' ')
         if self.line.find('#') != -1:
             self.line = self.line[0:self.line.find('#')]
+
+        if self.line == 'nop':
+            self.line = 'add $zero, $zero, $zero'
 
         logging.debug('set line: {}'.format(self.line))
 
@@ -83,19 +86,20 @@ class Line_Assemble:
         return output
         
     def get_r_funct(self, instruct):
-        table = {'add': '20', 'sub': '22', 'and': '24', 'or':'25', 'slt':'2a', 'nop': '0'}
+        table = {'add': '20', 'sub': '22', 'and': '24', 'or':'25', 'slt':'2a', 'jr': '8'}
         r = bindigits(int(table[instruct], 16), 6)
         logging.debug('r funct: {}'.format(r))
         return r
 
     def get_i_instruction(self, instruct):
-        table = {'lw': '23', 'sw':'2b', 'beq':'4'}
+        table = {'lw': '23', 'sw':'2b', 'beq':'4', 'addi': '8', 'andi': 'c', 'ori': 'd', 'slti': 'a',
+                 'bne': '5'}
         r = bindigits(int(table[instruct], 16), 6)
         logging.debug('i instruct: {}'.format(r))
         return r
  
     def get_j_instruction(self, instruct):
-        table = {'j': '2'}
+        table = {'j': '2', 'jal': '3'}
         r = bindigits(int(table[instruct], 16), 6)
         logging.debug('j instruct: {}'.format(r))
         return r
@@ -113,7 +117,7 @@ class Line_Assemble:
                  's1': '17', 's2': '18', 's3': '19', 's4': '20', 's5': '21', 's6': '22', 's7': '23', 't8': '24',
                  't9': '25', 'k0': '26', 'k1': '27', 'gp': '28', 'sp' : '29', 'fp': '30', 'ra': '31'}
 
-        r = bindigits(int(table[register], 16), 5)
+        r = bindigits(int(table[register]), 5)
         logging.debug('register: {}'.format(r))
         return r
 
@@ -132,7 +136,7 @@ class Line_Assemble:
         return r
 
     def get_relative_address(self, label):
-        delta = self.labels[label] - self.address + 1
+        delta = self.labels[label] - self.address - 1
         return bindigits(int(delta), 16)
 
     def reset_address(self):
@@ -140,8 +144,8 @@ class Line_Assemble:
 
 
 class MIPS_String_Format:
-    def __init__(self):
-        pass
+    def __init__(self, output_as_hex=False):
+        self.output_as_hex = output_as_hex
 
     def begin(self):
         pass
@@ -153,6 +157,8 @@ class MIPS_String_Format:
         self.stream = stream
 
     def write(self, content):
+        if self.output_as_hex:
+            content = hex(int(content,2))
         self.stream.write(content + "\n")
 
 
@@ -222,6 +228,7 @@ if __name__ == '__main__':
     argparse.add_argument('in_file', type=str)
     argparse.add_argument('-d', '--debug', default=False, action='store_true')
     argparse.add_argument('-mif', '--mif-format', default=False, action='store_true')
+    argparse.add_argument('-hex', '--hex-string-format', default=False, action='store_true')
     argparse.add_argument('-a', '--addr', type=int, default=6)
     argparse.add_argument('-i', '--increment-by', type=int, default=1)
 
@@ -229,7 +236,7 @@ if __name__ == '__main__':
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    out_format = MIPS_String_Format()
+    out_format = MIPS_String_Format(output_as_hex=args.hex_string_format)
     if args.mif_format:
         out_format = MIPS_MIF_Format(addr=args.addr, increment_by=args.increment_by)
 
